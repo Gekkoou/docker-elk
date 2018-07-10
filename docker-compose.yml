@@ -1,0 +1,102 @@
+version: "2"
+services:
+  es:
+    image: elasticsearch:5.6.9-alpine
+    container_name: es
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - ./elasticsearch/es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/es/config/jvm.options:/usr/share/elasticsearch/config/jvm.options:ro
+      - ./elasticsearch/es/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties:ro
+      - ./elasticsearch/es/data/:/usr/share/elasticsearch/data/:rw
+      - ./elasticsearch/es/logs/:/usr/share/elasticsearch/logs/:rw
+      - ./elasticsearch/es/plugins/:/usr/share/elasticsearch/plugins/:rw
+    networks:
+      - net-elk
+  #es1:
+  #  image: elasticsearch:5.6.9-alpine
+  #  container_name: es1
+  #  environment:
+  #    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #  ulimits:
+  #    memlock:
+  #      soft: -1
+  #      hard: -1
+  #    nofile:
+  #      soft: 65536
+  #      hard: 65536
+  #  ports:
+  #    - "9201:9200"
+  #    - "9301:9300"
+  #  volumes:
+  #    - ./elasticsearch/es1/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+  #    - ./elasticsearch/es1/config/jvm.options:/usr/share/elasticsearch/config/jvm.options:ro
+  #    - ./elasticsearch/es/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties:ro
+  #    - ./elasticsearch/es1/data/:/usr/share/elasticsearch/data/:rw
+  #    - ./elasticsearch/es1/logs/:/usr/share/elasticsearch/logs/:rw
+  #    - ./elasticsearch/es1/plugins/:/usr/share/elasticsearch/plugins/:rw
+  #  networks:
+  #    - net-elk
+  #es2:
+  #  image: elasticsearch:5.6.9-alpine
+  #  container_name: es2
+  #  environment:
+  #    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #  ulimits:
+  #    memlock:
+  #      soft: -1
+  #      hard: -1
+  #    nofile:
+  #      soft: 65536
+  #      hard: 65536
+  #  ports:
+  #    - "9202:9200"
+  #    - "9302:9300"
+  #  volumes:
+  #    - ./elasticsearch/es2/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+  #    - ./elasticsearch/es2/config/jvm.options:/usr/share/elasticsearch/config/jvm.options:ro
+  #    - ./elasticsearch/es/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties:ro
+  #    - ./elasticsearch/es2/data/:/usr/share/elasticsearch/data/:rw
+  #    - ./elasticsearch/es2/logs/:/usr/share/elasticsearch/logs/:rw
+  #    - ./elasticsearch/es2/plugins/:/usr/share/elasticsearch/plugins/:rw
+  #  networks:
+  #    - net-elk
+  logstash:
+    image: logstash:5.6.9-alpine
+    container_name: logstash
+    volumes:
+      - ./logstash/config/log4j2.properties:/usr/share/logstash/config/log4j2.properties:ro
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/config/logstash-nginx.conf:/usr/share/logstash/config/logstash-nginx.conf:ro
+      - ./logstash/data/:/usr/share/logstash/data/:rw
+      - ./logstash/logs/:/usr/share/logstash/logs/:rw
+      - ./log/:/var/log/logstash/:rw
+    command: logstash -f /usr/share/logstash/config/logstash-nginx.conf
+    depends_on:
+      - es
+    networks:
+      - net-elk
+  kibana:
+    image: kibana:5.6.9
+    container_name: kibana
+    environment:
+      - "ELASTICSEARCH_URL=http://es:9200"
+    ports:
+      - "5601:5601"
+    depends_on:
+      - es
+    networks:
+      - net-elk
+networks:
+  net-elk:
